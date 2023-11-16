@@ -2,104 +2,107 @@
 
     window.autoSize = function() {
 
-        // Iterate through all elements with the 'autoSize' class.
-        var autoSizeElements = document.getElementsByClassName('autoSize');
-        for (var x = 0; x < autoSizeElements.length; x++) {
+        // Get all elements with the 'autoSize' class and cache the length for performance.
+        const autoSizeElements = document.getElementsByClassName('autoSize');
+        const len = autoSizeElements.length;
 
-            // Initialize styling variables.
-            var targetWidth = 1;
-            var targetAlign = 'initial';
+        // Iterate over each element with the 'autoSize' class.
+        for (let x = 0; x < len; x++) {
 
-            // Iterate through the element's class list.
-            var classes = autoSizeElements[x].className.split(' ');
-            for (var y in classes) {
+            // Default values for width and alignment.
+            let targetWidth = 1;
+            let targetAlign = 'initial';
 
-                // Check if element contains any 'width-XX' classes.
-                if (classes[y].indexOf('width-') > -1) {
+            // Access the element's classList.
+            const classes = autoSizeElements[x].classList;
 
-                    // Store the number from the class, which determines the width.
-                    // Convert the number to decimal (90 >>> 0.90)
-                    var classWidth = parseInt(classes[y].split('-')[1]) * 0.01;
+            // Iterate over each class to find relevant 'width-' and 'align-' classes.
+            classes.forEach(className => {
 
-                    // Set targetWidth to 1 if classWidth is greater than 1.
-                    var targetWidth = classWidth > 1 ? 1 : classWidth;
-
+                // Check and process 'width-' class.
+                if (className.startsWith('width-')) {
+                    const classWidth = parseInt(className.split('-')[1], 10) * 0.01;
+                    targetWidth = classWidth > 1 ? 1 : classWidth;
                 }
 
-                // Check if element contains any 'align-XX' classes.
-                if (classes[y].indexOf('align-') > -1) {
-
-                    // Store the value from the class, which will determine the alignment.
-                    var targetAlign = classes[y].split('-')[1];
-
+                // Check and process 'align-' class.
+                if (className.startsWith('align-')) {
+                    targetAlign = className.split('-')[1];
                 }
 
-            }
+            });
 
-            // Store current HTML and remove all existing span tags.
-            var tmp = autoSizeElements[x].innerHTML.replace(/<span>/g, '').replace(/<\/span>/g, '');
+            // Main resizing logic.
+            const element = autoSizeElements[x];
 
-            // Wrap HTML in new span tag.
-            autoSizeElements[x].innerHTML = '<span>' + tmp + '</span>';
+            // Store current text and remove child elements to avoid extra spans.
+            const tmp = element.textContent;
 
-            // Reset font size to 1px.
-            autoSizeElements[x].style.fontSize = '1px';
+            // Clear the element's content.
+            element.textContent = '';
 
-            // Set element's text alignment.
-            autoSizeElements[x].style.textAlign = targetAlign;
-            
-            // Loop through and increase font size until the span fills the target width of the parent.
+            // Create a new span element and set its text.
+            const span = document.createElement('span');
+            span.textContent = tmp;
+
+            // Append the span to the element.
+            element.appendChild(span);
+
+            // Initialize the font size and text alignment.
+            element.style.fontSize = '1px';
+            element.style.textAlign = targetAlign;
+
+            // Loop to increase font size until the span fills the target width of the parent.
             while (true) {
 
-                // Store width of span tag (the width of the text).
-                var spanWidth = autoSizeElements[x].childNodes[0].getBoundingClientRect().width;
-            
-                // Store the width of the parent element.
-                var parentWidth = autoSizeElements[x].parentElement.clientWidth;
+                // Get the current width of the span (the width of the text).
+                const spanWidth = span.getBoundingClientRect().width;
 
-                // Calculate and set target pixel width.
-                // 1200px - (1200px * (1 - 0.90))
-                // 1200px - (1200px * 0.10)
-                // 1200px - (120px)
-                // 1080px = (90%)
-                var threshold = parentWidth - (parentWidth * (1 - targetWidth));
+                // Get the width of the parent element.
+                const parentWidth = element.parentElement.clientWidth;
 
-                // If the inner text's width is less than the calculated threshold.
+                // Calculate the target pixel width based on the parent width and target width.
+                const threshold = parentWidth - (parentWidth * (1 - targetWidth));
+
+                // Check if the span's width is less than the threshold.
                 if (spanWidth < threshold) {
 
-                    // Store the height of the inner span.
-                    var spanHeight = autoSizeElements[x].childNodes[0].getBoundingClientRect().height;
+                    // Get the height of the span.
+                    const spanHeight = span.getBoundingClientRect().height;
 
-                    // Store the size of the font.
-                    var fontSize = parseFloat(window.getComputedStyle(autoSizeElements[x], null).getPropertyValue('font-size'));
-                
-                    // If span height is greater than double the font-size then the text has shifted to 2 lines.
+                    // Get the current font size.
+                    const fontSize = parseFloat(window.getComputedStyle(element, null).getPropertyValue('font-size'));
+
+                    // Check if the span's height is greater than double the font size, indicating a line wrap.
+                    // If text wrapped to next line, reduce font size and break out of the loop.
                     if (spanHeight > (fontSize * 2)) {
-                        
-                        // Reduce font-size by one pixel and break.
-                        autoSizeElements[x].style.fontSize = fontSize - 1.00 + 'px';
+                        element.style.fontSize = `${fontSize - 1.00}px`;
                         break;
-
                     } else {
-
-                        // Increase the text size of the element by 1 pixel
-                        autoSizeElements[x].style.fontSize = fontSize + 1.00 + 'px';
-
+                        element.style.fontSize = `${fontSize + 1.00}px`;
                     }
 
-                // Parent is filled
-                } else { break; }
-                
+                // If the span fills the parent, break out of the loop.
+                } else {
+                    break;
+                }
             }
-            
         }
+    };
 
-    }
+    // Debounce function to optimize performance during window resize.
+    let resizeTimer;
+    window.onresize = function() {
 
-    // Resize text on window resize.
-    window.onresize = function() { autoSize(); };
+        // Clear the previous timer to debounce the resize event.
+        clearTimeout(resizeTimer);
 
-    // Initiate
+        // Set a new timer with a 250ms delay to re-run the autoSize function.
+        resizeTimer = setTimeout(autoSize, 250);
+
+    };
+
+    // Initialize the autoSize function on script load.
     autoSize();
 
 })();
