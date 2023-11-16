@@ -12,6 +12,7 @@
             // Default values for width and alignment.
             let targetWidth = 1;
             let targetAlign = 'initial';
+            let maxFontSize = Infinity;
 
             // Access the element's classList.
             const classes = autoSizeElements[x].classList;
@@ -28,6 +29,11 @@
                 // Check and process 'align-' class.
                 if (className.startsWith('align-')) {
                     targetAlign = className.split('-')[1];
+                }
+
+                // Check and process 'max-' class.
+                if (className.startsWith('max-')) {
+                    maxFontSize = parseInt(className.split('-')[1], 10);
                 }
 
             });
@@ -79,6 +85,10 @@
                         element.style.fontSize = `${fontSize - 1.00}px`;
                         break;
                     } else {
+                        if (fontSize >= maxFontSize) {
+                            element.style.fontSize = `${maxFontSize}px`;
+                            break;
+                        }
                         element.style.fontSize = `${fontSize + 1.00}px`;
                     }
 
